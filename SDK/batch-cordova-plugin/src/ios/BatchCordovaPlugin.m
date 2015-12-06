@@ -9,6 +9,7 @@
 
 @implementation BatchCordovaPlugin
 
+
 #pragma mark Fake Selector tools
 
 // Cordova calls the actions requested by Batch directly on this object's methods
@@ -77,14 +78,16 @@
 {
     //NSLog(@"[Batch] DEBUG - PluginInitialize");
     setenv("BATCH_PLUGIN_VERSION", PluginVersion, 1);
-    
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(_batchPushReceived:) name:BatchPushReceivedNotification object:nil];
-    
+
+    self->_wasLaunchedWithOptions = NO;
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidFinishLaunchingNotification:)
+                                                 name:@"UIApplicationDidFinishLaunchingNotification" object:nil];
+
     //[self.commandDelegate evalJs:@"batch._setupCallback()"];
     
     [Batch setLoggerDelegate:self];
 }
-
 
 - (void)onReset
 {
@@ -107,11 +110,68 @@
 }
 #pragma clang diagnostic pop
 
+
+
 // Called by the javascript part of the plugin
 - (void)_setupCallback:(CDVInvokedUrlCommand*)command
 {
     //NSLog(@"[BatchCordovaCallback] DEBUG: Setting up the generic callback %@", command.callbackId);
     self.genericCallbackId = command.callbackId;
+}
+
+
+// set callback waiting for device token
+- (void) waitForRemoteNotificationDeviceToken: (CDVInvokedUrlCommand*)command
+{
+    self->waitForRegisterRemoveNotificationCallbackId = command.callbackId;
+}
+
+// callback launched when device is registered for remote notification
+- (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
+{
+    NSString *token = [[[[deviceToken description] stringByReplacingOccurrencesOfString:@"<"withString:@""]
+                        stringByReplacingOccurrencesOfString:@">" withString:@""]
+                       stringByReplacingOccurrencesOfString: @" " withString: @""];
+    
+    CDVPluginResult *cdvResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{@"code": @(0), @"token": token}];
+    if (!self->waitForRegisterRemoveNotificationCallbackId)
+    {
+        NSLog(@"[BatchCordovaCallback] Not sending device token to Batch, callback id not set.");
+    }
+    else
+    {
+        [self.commandDelegate sendPluginResult:cdvResult callbackId:self->waitForRegisterRemoveNotificationCallbackId];
+    }
+    self->waitForRegisterRemoveNotificationCallbackId = nil;
+}
+
+// callback launched when device is registered if remote notification has failed
+- (void)didFailToRegisterForRemoteNotificationsWithError:(NSError *)error
+{
+    CDVPluginResult *cdvResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{@"code": @(error.code), @"error":error.localizedDescription}];
+    if (!self->waitForRegisterRemoveNotificationCallbackId)
+    {
+        NSLog(@"[BatchCordovaCallback] Not sending device token error to Batch, callback id not set. Something bad happened.");
+    }
+    else
+    {
+        [self.commandDelegate sendPluginResult:cdvResult callbackId:self->waitForRegisterRemoveNotificationCallbackId];
+    }
+    self->waitForRegisterRemoveNotificationCallbackId = nil;
+}
+
+//callback launched when app is started by clicking on a notification
+- (void)applicationDidFinishLaunchingNotification:(NSNotification *)notification
+{
+    NSDictionary *launchOptions = [notification userInfo];
+    self->_wasLaunchedWithOptions = (notification && launchOptions);
+}
+
+-(void)unregister:(CDVInvokedUrlCommand*)command
+{
+    [[UIApplication sharedApplication] unregisterForRemoteNotifications];
+    CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@""];
+    [self.commandDelegate sendPluginResult:result callbackId:command.callbackId];
 }
 
 - (void)_batchPushReceived:(NSNotification*)notification
@@ -122,8 +182,18 @@
         NSLog(@"[Batch] Error: got a push with no userInfo.");
         return;
     }
-
-    CDVPluginResult *cdvResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{@"action": @"_dispatchPush", @"payload": notification.userInfo}];
+    
+    NSMutableDictionary *userInfo = [notification.userInfo mutableCopy];
+    
+    BOOL isColdStart =  self->_wasLaunchedWithOptions;
+    self->_wasLaunchedWithOptions = NO;
+    [userInfo setValue:@(isColdStart) forKey:@"coldstart"];
+    
+    UIApplicationState state = [UIApplication sharedApplication].applicationState;
+    BOOL isInForeground = (state == UIApplicationStateActive) && !isColdStart;
+    [userInfo setValue:@(isInForeground) forKey:@"foreground"];
+    
+    CDVPluginResult *cdvResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsDictionary:@{@"action": @"_dispatchPush", @"payload": userInfo}];
     [cdvResult setKeepCallbackAsBool:YES];
     if (!self.genericCallbackId)
     {
