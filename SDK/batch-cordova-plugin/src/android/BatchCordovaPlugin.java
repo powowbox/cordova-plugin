@@ -29,6 +29,8 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
 
     private static final String PLUGIN_VERSION = "Cordova/1.4";
 
+    private boolean _wasInPushIntent = false;
+
     /**
      * Key used to add extra to an intent to prevent it to be used more than once to compute opens
      */
@@ -217,6 +219,9 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
      */
     public void sendPushFromIntent(Intent intent, boolean forceDelivery)
     {
+        boolean coldstart = !this._wasInPushIntent;
+        this._wasInPushIntent = false;
+
         if (genericCallbackId == null || (!forceDelivery && !BATCH_STARTED))
         {
             return;
@@ -257,6 +262,16 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
                         Log.e(TAG, "Error while parsing push payload.", e);
                         return;
                     }
+                }
+
+                try
+                {
+                    jsonPayload.put("coldstart", coldstart);
+                    jsonPayload.put("foreground", false); // spi: on android you need to click on the notification to start action
+                                                          // this parameter is meaningfull for ios but not for android
+                } catch (JSONException e) {
+                    Log.e(TAG, "Cannot add parameters", e);
+                    return;
                 }
 
                 Log.d(TAG, "JSON payload to cordova : " + jsonPayload.toString());
@@ -304,6 +319,7 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
     public void onNewIntent(Intent intent)
     {
         super.onNewIntent(intent);
+        this._wasInPushIntent = true;
         Batch.onNewIntent(cordova.getActivity(), intent);
         sendPushFromIntent(intent, false);
     }
