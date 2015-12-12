@@ -1,5 +1,44 @@
 ![Dashboard Items](https://raw.github.com/BatchLabs/cordova-plugin/master/readme_logo.png)
 
+# powowbox added functionnalities
+
+1. coldstart and foreground detection (android and ios)
+2. callback launched when remote notifification register is done. It's only implemented for ios,  must be implemented for android. 
+3. unregister for ios. It's not implemented for android because batch API doesn't provide an unregister call.
+ 
+Usage example:
+```
+    onDeviceReady: function() {
+        batch.setConfig({"androidAPIKey":"XXXX",
+            "iOSAPIKey":"XXXX"});
+        batch.push.setGCMSenderID("XXXX");
+        batch.start();
+        batch.push.registerForRemoteNotifications();
+        batch.push.waitForRemoteNotificationDeviceToken(function(res) {
+           alert(JSON.stringify(res));
+        });
+    },
+    onBatchPush: function(push) {
+        console.debug("Got a push payload from Batch", push);
+        if ( push.payload.coldstart == "true" ) {
+            alert('coldstart');
+        }
+
+        if ( push.payload.foreground == "true" ) {
+            alert('foreground');
+        }
+
+        if (typeof push.payload.alert !== "undefined") {
+            alert(push.payload.alert);
+        }
+    }
+```
+
+# powowbox todo
+
+1. implement remote notification register callback for android
+2. add a dummy unregister function  for android
+
 # Batch Sample Apps
 These samples are minimal examples demonstrating a proper integration of the Batch SDK and implementation of Batch Unlock and Batch Push functionality.
 
