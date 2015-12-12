@@ -1,23 +1,25 @@
-/*
- * JBoss, Home of Professional Open Source.
- * Copyright Red Hat, Inc., and individual contributors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-#import "AppDelegate.h"
+//
+//  BatchCordovaPlugin.h
+//  BatchCordovaPlugin
+//
+//  Copyright (c) 2015 Batch.com. All rights reserved.
+//
 
-@interface AppDelegate (notification)
-- (id) getCommandInstance:(NSString*)className;
-- (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken;
-- (void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error;
+#import <Foundation/Foundation.h>
+#import <Cordova/CDVPlugin.h>
+#import <BatchBridge/Batch.h>
+#import <BatchBridge/BatchBridge.h>
+#import <BatchBridge/BatchLogger.h>
+#import <BatchBridge/BatchJSONHelper.h>
+
+#define PluginVersion "Cordova/1.4"
+
+@interface BatchCordovaPlugin : CDVPlugin <BatchCallback, BatchLoggerDelegate> {
+    BOOL _wasLaunchedWithOptions;
+    NSString* waitForRegisterRemoveNotificationCallbackId;
+}
+
+@property (copy, nonatomic) NSString *genericCallbackId;
+- (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken;
+- (void)didFailToRegisterForRemoteNotificationsWithError:(NSError *)error;
 @end
