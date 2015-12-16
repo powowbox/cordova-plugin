@@ -84,8 +84,6 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(applicationDidFinishLaunchingNotification:)
                                                  name:@"UIApplicationDidFinishLaunchingNotification" object:nil];
 
-    //[self.commandDelegate evalJs:@"batch._setupCallback()"];
-    
     [Batch setLoggerDelegate:self];
 }
 

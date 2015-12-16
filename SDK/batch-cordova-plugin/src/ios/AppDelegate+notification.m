@@ -10,7 +10,6 @@
     return [self.viewController getCommandInstance:@"Batch"];
 }
 
-
 - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
     [[self getCommandInstance] didRegisterForRemoteNotificationsWithDeviceToken:deviceToken];
 }
