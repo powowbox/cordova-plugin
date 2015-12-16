@@ -411,6 +411,9 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
              * @return {batch.push}
              */
             registerForRemoteNotifications: function () {
+                if ( localStorage["batch_push_disabled"] )
+                    return;
+
                 sendToBridge(null, ACTION_REGISTER_NOTIFS, null);
                 return this;
             },
@@ -426,6 +429,8 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
                     writeBatchLog(false, "notifTypes must be a number (of the AndroidNotificationTypes enum)");
                     return this;
                 }
+
+                localStorage["android_notif_type"] = notifTypes;
                 sendToBridge(null, ACTION_SET_ANDROIDNOTIF_TYPES, [{'notifTypes': notifTypes}]);
                 return this;
             },
@@ -486,15 +491,30 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
              * if success then {code: 0, token:<token_value>}
              * if failed then {code: <code_value>, error:<error_message>
              */
-            waitForRemoteNotificationDeviceToken: function(resultCallback) {
-                cordova.exec(resultCallback, null, BATCH_PLUGIN_NAME, "waitForRemoteNotificationDeviceToken", [{}]);
+            waitForRemoteNotificationDeviceToken: function(resultCallback, errorCallback) {
+                cordova.exec(resultCallback, errorCallback, BATCH_PLUGIN_NAME, "waitForRemoteNotificationDeviceToken", [{}]);
             },
 
             /**
-             * unregister a device
+             * disable notification
              */
-            unregister: function() {
-                cordova.exec(null, null, BATCH_PLUGIN_NAME, "unregister", [{}]);
+            disable: function() {
+                localStorage["batch_push_disabled"] = true;
+                cordova.exec(null, null, BATCH_PLUGIN_NAME, "pushUnregister", [{}]);
+            },
+
+            /**
+             * enable notification
+             */
+            enable: function() {
+                localStorage["batch_push_disabled"] = false;
+
+                if ( localStorage["android_last_notif_type"] )
+                    this.setAndroidNotificationTypes(localStorage["android_last_notif_type"]);
+                else
+                    this.setAndroidNotificationTypes(this.AndroidNotificationTypes.ALERT);
+
+                this.registerForRemoteNotifications();
             },
 
         },
