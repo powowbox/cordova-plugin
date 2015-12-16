@@ -1,10 +1,10 @@
 ![Dashboard Items](https://raw.github.com/BatchLabs/cordova-plugin/master/readme_logo.png)
 
-# powowbox added functionnalities
+# powowbox added functionnalities for push
 
 1. coldstart and foreground detection (android and ios)
 2. callback launched when remote notifification register is done.
-3. unregister for ios and android.
+3. add functions to enable or disable push.
  
 Usage example:
 ```
