@@ -20,6 +20,8 @@ import org.json.JSONObject;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class BatchCordovaPlugin extends CordovaPlugin implements Callback, LoggerDelegate
 {
@@ -30,6 +32,12 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
     private static final String PLUGIN_VERSION = "Cordova/1.4";
 
     private boolean _wasInPushIntent = false;
+
+    private String _waitForRemoteNotificationDeviceTokenCkbId = null;
+
+    private Pattern _tokenIdRegex = null;
+
+    private Pattern _errorIdRegex = null;
 
     /**
      * Key used to add extra to an intent to prevent it to be used more than once to compute opens
@@ -53,6 +61,8 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
     protected void pluginInitialize()
     {
         super.pluginInitialize();
+        _errorIdRegex = Pattern.compile("Error while requesting push token");
+        _tokenIdRegex  = Pattern.compile("Batch[.]Push: Registration id: (.*)$");
     }
 
     public void onReset()
@@ -65,6 +75,12 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
     @SuppressWarnings("unchecked")
     public boolean execute(String action, String rawArgs, CallbackContext callbackContext) throws JSONException
     {
+
+        if ("pushUnregister".equals(action) ) {
+            action = "BA_push.setAndroidNotifTypes";
+            rawArgs = "[{'notifTypes': 0}]";
+        }
+
         if (action != null && action.startsWith("BA_"))
         {
             action = action.substring(3);
@@ -154,6 +170,12 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
             //Log.d(TAG, "DEBUG: Setting up the generic callback " + callbackContext.getCallbackId());
             return true;
         }
+        else if ("waitForRemoteNotificationDeviceToken".equals(action))
+        {
+            _waitForRemoteNotificationDeviceTokenCkbId = callbackContext.getCallbackId();
+            return true;
+        }
+
         return false;
     }
 
@@ -191,6 +213,23 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
     public void log(String tag, String msg, Throwable throwable)
     {
         final String message = tag + " - " + msg + (throwable != null ? " - " + throwable.toString() : "");
+
+        if ( this._tokenIdRegex !=  null ) {
+            Matcher m = this._tokenIdRegex.matcher(msg);
+            if ( m.matches() && this._waitForRemoteNotificationDeviceTokenCkbId != null ) {
+                String pushToken = m.group(1);
+                webView.sendPluginResult(new PluginResult(PluginResult.Status.OK, pushToken), this._waitForRemoteNotificationDeviceTokenCkbId);
+                this._waitForRemoteNotificationDeviceTokenCkbId = null;
+            }
+        }
+
+        if ( this._errorIdRegex != null ) {
+            Matcher m = this._errorIdRegex.matcher(message);
+            if ( m.matches() && this._waitForRemoteNotificationDeviceTokenCkbId != null ) {
+                webView.sendPluginResult(new PluginResult(PluginResult.Status.ERROR, message), this._waitForRemoteNotificationDeviceTokenCkbId);
+                this._waitForRemoteNotificationDeviceTokenCkbId = null;
+            }
+        }
 
         if (genericCallbackId == null)
         {
@@ -268,7 +307,7 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
                 {
                     jsonPayload.put("coldstart", coldstart);
                     jsonPayload.put("foreground", false); // spi: on android you need to click on the notification to start action
-                                                          // this parameter is meaningfull for ios but not for android
+                    // this parameter is meaningfull for ios but not for android
                 } catch (JSONException e) {
                     Log.e(TAG, "Cannot add parameters", e);
                     return;
@@ -298,21 +337,21 @@ public class BatchCordovaPlugin extends CordovaPlugin implements Callback, Logge
 
     // Activity lifecycle methods
 
-    @Override
+    // @Override
     public void onStart()
     {
-        super.onStart();
+        // super.onStart();
         if (BATCH_STARTED)
         {
             Batch.onStart(cordova.getActivity());
         }
     }
 
-    @Override
+    // @Override
     public void onStop()
     {
         Batch.onStop(cordova.getActivity());
-        super.onStop();
+        // super.onStop();
     }
 
     @Override
