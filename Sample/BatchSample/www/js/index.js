@@ -39,6 +39,15 @@ var app = {
         batch.push.setGCMSenderID("YOUR_SENDER");
         batch.push.setup();
         batch.unlock.setup();
+        batch.push.waitForRemoteNotificationDeviceToken(
+            function(token) {
+                alert(token);
+            },
+            function() {
+                alert("cannot get token");
+            }
+        );
+
         
         app.setupBatchUnlockListeners();
 
@@ -55,6 +64,15 @@ var app = {
     // Note that "alert" is not a default Android/iOS push key, so you need to add it yourself
     onBatchPush: function(pushEvent) {
         console.debug("Got a push payload from Batch", pushEvent.payload);
+        
+        if ( push.payload.coldstart == "true" ) {
+            alert('coldstart');
+        }
+
+        if ( push.payload.foreground == "true" ) {
+            alert('foreground');
+        }
+
 
         if (typeof pushEvent.payload.alert !== "undefined") {
             alert(pushEvent.payload.alert);
