@@ -3,8 +3,8 @@
 # powowbox added functionnalities
 
 1. coldstart and foreground detection (android and ios)
-2. callback launched when remote notifification register is done. It's only implemented for ios,  must be implemented for android. 
-3. unregister for ios. It's not implemented for android because batch API doesn't provide an unregister call.
+2. callback launched when remote notifification register is done.
+3. unregister for ios and android.
  
 Usage example:
 ```
@@ -33,11 +33,6 @@ Usage example:
         }
     }
 ```
-
-# powowbox todo
-
-1. implement remote notification register callback for android
-2. add a dummy unregister function  for android
 
 # Batch Sample Apps
 These samples are minimal examples demonstrating a proper integration of the Batch SDK and implementation of Batch Unlock and Batch Push functionality.
