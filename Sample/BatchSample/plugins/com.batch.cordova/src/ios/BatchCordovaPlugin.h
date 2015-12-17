@@ -14,8 +14,12 @@
 
 #define PluginVersion "Cordova/1.4"
 
-@interface BatchCordovaPlugin : CDVPlugin <BatchCallback, BatchLoggerDelegate>
+@interface BatchCordovaPlugin : CDVPlugin <BatchCallback, BatchLoggerDelegate> {
+    BOOL _wasLaunchedWithOptions;
+    NSString* waitForRegisterRemoveNotificationCallbackId;
+}
 
 @property (copy, nonatomic) NSString *genericCallbackId;
-
+- (void)didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken;
+- (void)didFailToRegisterForRemoteNotificationsWithError:(NSError *)error;
 @end
