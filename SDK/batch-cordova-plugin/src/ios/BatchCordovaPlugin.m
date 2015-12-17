@@ -165,7 +165,7 @@
     self->_wasLaunchedWithOptions = (notification && launchOptions);
 }
 
--(void)unregister:(CDVInvokedUrlCommand*)command
+-(void)pushUnregister:(CDVInvokedUrlCommand*)command
 {
     [[UIApplication sharedApplication] unregisterForRemoteNotifications];
     CDVPluginResult *result = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:@""];

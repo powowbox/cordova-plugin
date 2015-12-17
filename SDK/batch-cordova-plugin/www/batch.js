@@ -411,7 +411,7 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
              * @return {batch.push}
              */
             registerForRemoteNotifications: function () {
-                if ( localStorage["batch_push_disabled"] )
+                if ( localStorage['batch_push_disabled'] == 'true' )
                     return;
 
                 sendToBridge(null, ACTION_REGISTER_NOTIFS, null);
@@ -425,12 +425,12 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
              * @return {batch.push}
              */
             setAndroidNotificationTypes: function (notifTypes) {
-                if (typeof notifTypes !== "number") {
+                if (isNan(notifTypes)) {
                     writeBatchLog(false, "notifTypes must be a number (of the AndroidNotificationTypes enum)");
                     return this;
                 }
 
-                localStorage["android_notif_type"] = notifTypes;
+                localStorage['android_last_notif_type'] = notifTypes;
                 sendToBridge(null, ACTION_SET_ANDROIDNOTIF_TYPES, [{'notifTypes': notifTypes}]);
                 return this;
             },
@@ -442,7 +442,7 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
              * @return {batch.push}
              */
             setiOSNotificationTypes: function (notifTypes) {
-                if (typeof notifTypes !== "number") {
+                if (isNaN(notifTypes)) {
                     writeBatchLog(false, "notifTypes must be a number (of the iOSNotificationTypes enum)");
                     return this;
                 }
@@ -499,20 +499,24 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
              * disable notification
              */
             disable: function() {
-                localStorage["batch_push_disabled"] = true;
-                cordova.exec(null, null, BATCH_PLUGIN_NAME, "pushUnregister", [{}]);
+                localStorage["batch_push_disabled"] = 'true';
+                cordova.exec(function() {
+                    console.log('[BATCH] - push unregistered');
+                }, null, BATCH_PLUGIN_NAME, "pushUnregister", [{}]);
             },
 
             /**
              * enable notification
              */
             enable: function() {
-                localStorage["batch_push_disabled"] = false;
+                localStorage['batch_push_disabled'] = 'false';
 
-                if ( localStorage["android_last_notif_type"] )
-                    this.setAndroidNotificationTypes(localStorage["android_last_notif_type"]);
-                else
-                    this.setAndroidNotificationTypes(this.AndroidNotificationTypes.ALERT);
+                if ( isPlatformType("android") ) {
+                    if ( localStorage['android_last_notif_type'])
+                        this.setAndroidNotificationTypes(localStorage['android_last_notif_type']);
+                    else
+                        this.setAndroidNotificationTypes(batch.push.AndroidNotificationTypes.ALERT);
+                }
 
                 this.registerForRemoteNotifications();
             },
