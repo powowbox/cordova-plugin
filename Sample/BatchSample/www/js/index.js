@@ -39,7 +39,7 @@ var app = {
         batch.push.setGCMSenderID("YOUR_SENDER");
         batch.push.setup();
         batch.unlock.setup();
-        batch.push.waitForRemoteNotificationDeviceToken(
+        batch.push.registerForRemoteNotifications(
             function(token) {
                 alert(token);
             },
