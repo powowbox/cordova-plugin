@@ -410,11 +410,13 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
              * Ask iOS users if they want to accept push notifications. Required to be able to push users. No effect on Android.
              * @return {batch.push}
              */
-            registerForRemoteNotifications: function () {
-                if ( localStorage['batch_push_disabled'] == 'true' )
+            registerForRemoteNotifications: function (successCallback, failedCallback) {
+                if ( isPlatformType('ios') && localStorage['batch_push_disabled'] == 'true' )
                     return;
 
-                sendToBridge(null, ACTION_REGISTER_NOTIFS, null);
+                sendToBridge(function() {
+                    this.waitForRemoteNotificationDeviceToken(successCallback, failedCallback);
+                }.bind(this), ACTION_REGISTER_NOTIFS, null);
                 return this;
             },
 
@@ -425,13 +427,13 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
              * @return {batch.push}
              */
             setAndroidNotificationTypes: function (notifTypes) {
-                if (isNan(notifTypes)) {
+                if (isNaN(notifTypes)) {
                     writeBatchLog(false, "notifTypes must be a number (of the AndroidNotificationTypes enum)");
                     return this;
                 }
 
                 localStorage['android_last_notif_type'] = notifTypes;
-                sendToBridge(null, ACTION_SET_ANDROIDNOTIF_TYPES, [{'notifTypes': notifTypes}]);
+                sendToBridge(null, ACTION_SET_ANDROIDNOTIF_TYPES, [{'notifTypes': parseInt(notifTypes)}]);
                 return this;
             },
 
@@ -446,7 +448,7 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
                     writeBatchLog(false, "notifTypes must be a number (of the iOSNotificationTypes enum)");
                     return this;
                 }
-                sendToBridge(null, ACTION_SET_IOSNOTIF_TYPES, [{'notifTypes': notifTypes}]);
+                sendToBridge(null, ACTION_SET_IOSNOTIF_TYPES, [{'notifTypes': parseInt(notifTypes)}]);
                 return this;
             },
 
@@ -499,7 +501,9 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
              * disable notification
              */
             disable: function() {
-                localStorage["batch_push_disabled"] = 'true';
+                if ( isPlatformType('ios') )
+                    localStorage['batch_push_disabled'] = 'true';
+                
                 cordova.exec(function() {
                     console.log('[BATCH] - push unregistered');
                 }, null, BATCH_PLUGIN_NAME, "pushUnregister", [{}]);
@@ -509,9 +513,10 @@ cordova.define("com.batch.cordova.batch", function(require, exports, module) {
              * enable notification
              */
             enable: function() {
-                localStorage['batch_push_disabled'] = 'false';
+                if ( isPlatformType('ios') )
+                    localStorage['batch_push_disabled'] = 'false';
 
-                if ( isPlatformType("android") ) {
+                if ( isPlatformType('android') ) {
                     if ( localStorage['android_last_notif_type'])
                         this.setAndroidNotificationTypes(localStorage['android_last_notif_type']);
                     else
