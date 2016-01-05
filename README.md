@@ -13,10 +13,14 @@ Usage example:
             "iOSAPIKey":"XXXX"});
         batch.push.setGCMSenderID("XXXX");
         batch.start();
-        batch.push.registerForRemoteNotifications();
-        batch.push.waitForRemoteNotificationDeviceToken(function(res) {
-           alert(JSON.stringify(res));
-        });
+        batch.push.registerForRemoteNotifications(
+            function(token) {
+                alert(token);
+            },
+            function() {
+                alert("cannot get token");
+            }
+        );
     },
     onBatchPush: function(push) {
         console.debug("Got a push payload from Batch", push);
